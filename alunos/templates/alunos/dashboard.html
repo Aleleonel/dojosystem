@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2 class="mb-4">Dashboard</h2>
+
+<div class="row">
+
+    <div class="col-md-4">
+        <div class="card text-white bg-primary mb-3">
+            <div class="card-body">
+                <h5>Total de Alunos</h5>
+                <h2>{{ total_alunos }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card text-white bg-success mb-3">
+            <div class="card-body">
+                <h5>Ativos</h5>
+                <h2>{{ alunos_ativos }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card text-white bg-dark mb-3">
+            <div class="card-body">
+                <h5>Presenças Hoje</h5>
+                <h2>{{ presencas_hoje }}</h2>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<hr>
+
+<h4>Ranking de Frequência</h4>
+
+<table class="table table-striped">
+    <tr>
+        <th>Aluno</th>
+        <th>Total</th>
+    </tr>
+
+    {% for r in ranking %}
+    <tr>
+        <td>{{ r.aluno__nome }}</td>
+        <td>{{ r.total }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+<hr>
+
+<h4>Frequência por Dia</h4>
+
+<canvas id="grafico"></canvas>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    const labels = [
+        {% for item in ultimos_dias %}
+    "{{ item.data }}",
+        {% endfor %}
+];
+
+    const data = [
+        {% for item in ultimos_dias %}
+    { { item.total } },
+    {% endfor %}
+];
+
+    new Chart(document.getElementById('grafico'), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Presenças',
+                data: data,
+                borderWidth: 2
+            }]
+        }
+    });
+</script>
+
+{% endblock %}

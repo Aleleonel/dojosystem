@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h3>{{ aluno.nome }}</h3>
+
+<table class="table">
+    <tr>
+        <th>Data</th>
+        <th>Hora</th>
+    </tr>
+
+    {% for f in frequencias %}
+    <tr>
+        <td>{{ f.data }}</td>
+        <td>{{ f.hora }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+{% endblock %}
