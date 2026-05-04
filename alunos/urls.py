@@ -17,5 +17,6 @@ urlpatterns = [
     path('login/', views.CustomLoginView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),
     path('admin/painel/', views.painel_admin, name='painel_admin'),
+    path('academia/cadastro/', views.cadastrar_academia, name='cadastrar_academia'),
     
 ]

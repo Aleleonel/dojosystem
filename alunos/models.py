@@ -9,6 +9,54 @@ from django.conf import settings
 import uuid
 
 
+
+class Academia(models.Model):
+
+    # 🏢 DADOS EMPRESARIAIS
+    razao_social = models.CharField(max_length=200, blank=True, null=True)
+    nome_fantasia = models.CharField(max_length=150, blank=True, null=True)
+    cnpj = models.CharField(max_length=18, blank=True, null=True)
+    inscricao_estadual = models.CharField(max_length=50, blank=True, null=True)
+
+    # 👤 RESPONSÁVEL
+    responsavel = models.CharField(max_length=150, null=True, blank=True)
+
+    # 📞 CONTATO
+    email = models.EmailField(blank=True, null=True)
+    telefone_comercial = models.CharField(max_length=20, null=True, blank=True)
+
+    # 📍 ENDEREÇO
+    cep = models.CharField(max_length=10, null=True, blank=True)
+    endereco = models.CharField(max_length=200, null=True, blank=True)
+    numero = models.CharField(max_length=10, null=True, blank=True)
+    complemento = models.CharField(max_length=100, blank=True, null=True)
+    bairro = models.CharField(max_length=100, null=True, blank=True)
+    cidade = models.CharField(max_length=100, null=True, blank=True)
+    estado = models.CharField(max_length=2, null=True, blank=True)
+
+    # ⚙️ CONTROLE
+    ativa = models.BooleanField(default=True)
+    data_criacao = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.nome_fantasia or self.razao_social or "Academia"
+
+class Perfil(models.Model):
+
+    TIPO_USUARIO = [
+        ('dono', 'Dono'),
+        ('professor', 'Professor'),
+    ]
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    academia = models.ForeignKey(Academia, on_delete=models.CASCADE, null=True, blank=True)
+
+    tipo = models.CharField(max_length=20, choices=TIPO_USUARIO, default='professor')
+
+    def __str__(self):
+        return f"{self.user.username} - {self.tipo}"
+
+
 class Aluno(models.Model):
 
     GRADUACAO_CHOICES = [
@@ -35,24 +83,25 @@ class Aluno(models.Model):
 
    # usuario = models.ForeignKey(User, on_delete=models.CASCADE)  # 👈 NOVO CAMPO
     usuario = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    academia = models.ForeignKey(Academia, on_delete=models.CASCADE, null=True)
     
     def __str__(self):
         return self.nome
     
     qr_code = models.ImageField(upload_to='qrcodes/', blank=True)
 
-    def gerar_codigo_unico():
+    def gerar_codigo_unico(self):
         while True:
             codigo = uuid.uuid4().hex[:10]
             if not Aluno.objects.filter(codigo_barras=codigo).exists():
                 return codigo
 
     def save(self, *args, **kwargs):
-        
-        if not self.codigo_barras:
-            self.codigo_barras = gerar_codigo_unico()
 
-        criando = not self.pk
+        if not self.codigo_barras:
+            self.codigo_barras = self.gerar_codigo_unico()
+
+        criando = self._state.adding
 
         super().save(*args, **kwargs)
 

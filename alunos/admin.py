@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import Aluno
+from .models import Academia, Perfil
 
 @admin.register(Aluno)
 class AlunoAdmin(admin.ModelAdmin):
@@ -15,3 +16,6 @@ def qr_preview(self, obj):
     return "-"
 
 qr_preview.short_description = "QR Code"
+
+admin.site.register(Academia)
+admin.site.register(Perfil)

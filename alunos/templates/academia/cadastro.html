@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+
+        <div class="card shadow">
+            <div class="card-body">
+
+                <h3 class="mb-4 text-center">Cadastro de Academia</h3>
+
+                <form method="POST">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label>Nome da Academia</label>
+                        {{ form.nome }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Email</label>
+                        {{ form.email }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Telefone</label>
+                        {{ form.telefone }}
+                    </div>
+
+                    <button class="btn btn-success w-100">
+                        Criar Academia
+                    </button>
+
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

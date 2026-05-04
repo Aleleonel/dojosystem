@@ -11,12 +11,59 @@ from django.urls import reverse_lazy
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.models import User
+from .forms import AcademiaForm
+from .models import Perfil, Academia
+
+
+def dono_required(view_func):
+    def wrapper(request, *args, **kwargs):
+        perfil = getattr(request.user, 'perfil', None)
+
+        if not perfil or perfil.tipo != 'dono':
+            raise PermissionDenied
+
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+
+def get_perfil(request):
+    perfil = getattr(request.user, 'perfil', None)
+
+    if not perfil:
+        academia = Academia.objects.first()
+        perfil = Perfil.objects.create(
+            user=request.user,
+            academia=academia,
+            tipo='professor'
+        )
+
+    return perfil
+
+
+
+@login_required
+def cadastrar_academia(request):
+    form = AcademiaForm(request.POST or None)
+
+    if form.is_valid():
+        academia = form.save()
+
+        # vincula academia ao usuário logado
+        perfil, criado = Perfil.objects.get_or_create(user=request.user)
+
+        perfil.academia = academia
+        perfil.save()
+
+        return redirect('dashboard')
+
+    return render(request, 'academia/cadastro.html', {'form': form})
 
 class CustomLoginView(LoginView):
     template_name = 'usuarios/login.html'
     redirect_authenticated_user = True
 
 @login_required
+@dono_required
 def painel_admin(request):
     if not request.user.is_superuser:
         raise PermissionDenied
@@ -57,17 +104,22 @@ def painel_admin(request):
 
 @login_required
 def lista_alunos(request):
-    alunos = Aluno.objects.filter(usuario=request.user)  # 👈 FILTRO
+    perfil = get_perfil(request)
+
+    alunos = Aluno.objects.filter(academia=perfil.academia)
 
     return render(request, 'alunos/lista.html', {'alunos': alunos})
 
 @login_required
 def criar_aluno(request):
+    perfil = request.user.perfil
+
     form = AlunoForm(request.POST or None, request.FILES or None)
 
     if form.is_valid():
         aluno = form.save(commit=False)
-        aluno.usuario = request.user  # 👈 vincula ao professor logado
+        aluno.usuario = request.user
+        aluno.academia = perfil.academia
         aluno.save()
 
         return redirect('lista_alunos')
@@ -119,11 +171,20 @@ def leitor_qr(request):
 
 @login_required
 def checkin_qr(request, codigo):
-    aluno = get_object_or_404(Aluno, codigo_barras=codigo, usuario=request.user)
+    perfil = get_perfil(request)
+
+    aluno = get_object_or_404(
+        Aluno,
+        codigo_barras=codigo,
+        academia=perfil.academia
+    )
 
     hoje = timezone.now().date()
 
-    ja_registrado = Frequencia.objects.filter(aluno=aluno, data=hoje).exists()
+    ja_registrado = Frequencia.objects.filter(
+        aluno=aluno,
+        data=hoje
+    ).exists()
 
     if not ja_registrado:
         Frequencia.objects.create(aluno=aluno)
@@ -133,38 +194,38 @@ def checkin_qr(request, codigo):
 @login_required
 def dashboard(request):
 
+    perfil = get_perfil(request)
     hoje = timezone.now().date()
 
-    total_alunos = Aluno.objects.filter(usuario=request.user).count()
+    total_alunos = Aluno.objects.filter(
+        academia=perfil.academia
+    ).count()
 
     alunos_ativos = Aluno.objects.filter(
-        usuario=request.user,
+        academia=perfil.academia,
         ativo=True
     ).count()
 
     presencas_hoje = Frequencia.objects.filter(
-        aluno__usuario=request.user,
+        aluno__academia=perfil.academia,
         data=hoje
     ).count()
 
-    alunos_ativos = Aluno.objects.filter(ativo=True).count()
-    presencas_hoje = Frequencia.objects.filter(data=hoje).count()
+    ranking = (
+        Frequencia.objects
+        .filter(aluno__academia=perfil.academia)
+        .values('aluno__nome')
+        .annotate(total=Count('id'))
+        .order_by('-total')[:5]
+    )
 
-    # Ranking de frequência
-    ranking = (Frequencia.objects
-    .filter(aluno__usuario=request.user)
-    .values('aluno__nome')
-    .annotate(total=Count('id'))
-    .order_by('-total')[:5]
-)
-
-    # Frequência por dia (últimos 7 dias)
-    ultimos_dias = (Frequencia.objects
-    .filter(aluno__usuario=request.user)
-    .values('data')
-    .annotate(total=Count('id'))
-    .order_by('data')
-)
+    ultimos_dias = (
+        Frequencia.objects
+        .filter(aluno__academia=perfil.academia)
+        .values('data')
+        .annotate(total=Count('id'))
+        .order_by('data')
+    )
 
     return render(request, 'alunos/dashboard.html', {
         'total_alunos': total_alunos,
@@ -173,6 +234,7 @@ def dashboard(request):
         'ranking': ranking,
         'ultimos_dias': ultimos_dias
     })
+
 
 @login_required
 def cadastrar_usuario(request):
