@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+    <h2 class="mb-4">👑 Dashboard Administrativo</h2>
+
+    <!-- CARDS -->
+    <div class="row">
+
+        <div class="col-md-3">
+            <div class="card text-center shadow">
+                <div class="card-body">
+                    <h5>Usuários</h5>
+                    <h3>{{ total_usuarios }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card text-center shadow">
+                <div class="card-body">
+                    <h5>Professores</h5>
+                    <h3>{{ total_professores }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card text-center shadow">
+                <div class="card-body">
+                    <h5>Alunos</h5>
+                    <h3>{{ total_alunos }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card text-center shadow">
+                <div class="card-body">
+                    <h5>Presenças Hoje</h5>
+                    <h3>{{ presencas_hoje }}</h3>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- RANKING -->
+    <div class="mt-5">
+        <h4>🏆 Ranking de Frequência</h4>
+
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Aluno</th>
+                    <th>Presenças</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in ranking %}
+                <tr>
+                    <td>{{ item.aluno__nome }}</td>
+                    <td>{{ item.total }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- GRÁFICO -->
+    <div class="mt-5">
+        <h4>📊 Frequência por Dia</h4>
+        <canvas id="grafico"></canvas>
+    </div>
+
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    const labels = [
+        {% for item in frequencia_dias %}
+    "{{ item.data }}",
+        {% endfor %}
+    ];
+
+    const data = [
+        {% for item in frequencia_dias %}
+    { { item.total } },
+    {% endfor %}
+    ];
+
+    new Chart(document.getElementById('grafico'), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Presenças',
+                data: data
+            }]
+        }
+    });
+</script>
+
+{% endblock %}
